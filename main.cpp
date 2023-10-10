@@ -88,8 +88,13 @@ struct Node {
     vector<Node*> children;
     explicit Node(int inId) { id = inId; }
     ~Node() {
-        if (!children.empty()) { for (auto &child : children) { delete child; } }
-        this->children.clear();
+        if (!children.empty()) {
+            for (auto &child : children) {
+                cout << "STATUS: delete " << child->id << endl;
+                delete child;
+            }
+            this->children.clear();
+        }
     }
     void setChild(Node* child) {
         child->parent = this;
@@ -104,6 +109,10 @@ struct Tree {
     Tree() {
         core = new Node(0);
         cout << "STATUS: created a tree and a trunk node" << endl;
+    }
+    ~Tree() {
+        cout << "STATUS: delete core" << endl;
+        delete core;
     }
     void push(Node* current, int targetId, Node* newNode, bool &isFound) {
         if (isFound) { return; }
