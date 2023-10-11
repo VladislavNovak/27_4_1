@@ -39,9 +39,14 @@
 </details>
 
 <details>
-<summary><span style="color:tomato;font-size:12px">INFO</span></summary>
+<summary><span style="color:tomato;font-size:12px">Полезные ссылки</span></summary>
 
-[//]: # (<a href="" style="margin-left:16px">REF</a>)
+<p><a href="https://www.geeksforgeeks.org/deleting-a-binary-tree-using-the-delete-keyword/" style="margin-left:16px">Deleting a binary tree using the delete keyword</a></p>
+<p><a href="https://proproprogs.ru/structure_data/std-dvusvyaznyy-spisok-list-v-stl-na-c" style="margin-left:16px">Двусвязный список (list) в STL на С++</a></p>
+<p><a href="https://habr.com/ru/sandbox/153128/" style="margin-left:16px">Реализация односвязного списка на c++</a></p>
+<p><a href="https://prog-cpp.ru/data-tree/" style="margin-left:16px">Дерево</a></p>
+
+
 
 </details>
 </details>
