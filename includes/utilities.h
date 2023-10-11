@@ -8,6 +8,7 @@
 #include <limits>
 #include <algorithm>
 #include <sstream>
+#include <cctype>
 // #include <cstdlib>
 // #include <ctime>
 #include <iterator>
@@ -93,8 +94,7 @@ int putNumeric(const std::vector<int> &list = {}, const std::vector<int> &exclud
         if (isList && !isIncludes(list, userInput)) isTrouble = true;
         if (isExcluded && isIncludes(excludedList, userInput)) isTrouble = true;
 
-        if (!isTrouble) {
-            break; }
+        if (!isTrouble) { break; }
         std::cout << "Error.Try again:";
     }
     return userInput;
@@ -113,6 +113,11 @@ std::string putLineString(const std::string &msg) {
 
         return userLineString;
     }
+}
+
+void capitalize(std::string &target) {
+    if (!target.length()) { return; }
+    target[0] = std::toupper(target[0]); // NOLINT(*-narrowing-conversions)
 }
 
 #endif //INC_27_4_1_UTILITIES_H

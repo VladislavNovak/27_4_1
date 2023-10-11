@@ -17,7 +17,7 @@ struct Node {
     int id;
     // Нужен для позиционирования при распечатывании всего дерева
     int stage = 0;
-    string name = "none";
+    string name = "None";
     Node* parent = nullptr;
     vector<Node*> children;
     explicit Node(int inId) { id = inId; }
@@ -37,7 +37,7 @@ struct Node {
     }
     void setName(string inName) {
         if (!name.empty()) {
-            if (name == "none") { name = inName; }
+            if (name == "None") { name = inName; }
             else {
                 cout << "Current name is " << name << ". Are we going to change the name?" << endl;
                 if (selectMenuItem({"yes", "no"}) == 0) { name = std::move(inName); }
@@ -55,13 +55,14 @@ struct Tree {
         cout << "STATUS: created a tree and a trunk node" << endl;
     }
     ~Tree() {
-        cout << "STATUS: delete core" << endl;
+        cout << "STATUS: delete tree and children nodes" << endl;
         delete core;
     }
     void print(Node* node) {
         int indent = node->stage > 0 ? (node->stage * 2) + 4 : 4;
         cout << std::setw(indent) << "-" << node->id << " with name: " << node->name;
-        cout << " (from " << ((node->parent != nullptr) ? std::to_string(node->parent->id) : "") << ")";
+        cout << ((node->parent != nullptr) ? " (from " + std::to_string(node->parent->id) + ")": " is CORE");
+        // cout << " (from " << ((node->parent != nullptr) ? std::to_string(node->parent->id) : "") << ")";
         if (!node->children.empty()) {
             cout << ": " << endl;
             for (const auto & child : node->children) { print(child); }
@@ -93,7 +94,6 @@ struct Tree {
     bool hasOriginalityName(const string &newName) {
         bool isOriginal = true;
         findNameAmongNodes(core, newName, isOriginal);
-        cout << "isOriginal:: " << isOriginal << endl;
         return isOriginal;
     }
     void createNode() {
@@ -104,8 +104,9 @@ struct Tree {
         if (selectMenuItem({"yes", "no"}) == 0) {
             while(true) {
                 string name = putLineString("Enter name");
+                capitalize(name);
                 // Здесь: поднимем первую букву в верхний регистр
-                if (name == "none" || hasOriginalityName(name)) {
+                if (name == "None" || hasOriginalityName(name)) {
                     childNode->setName(name);
                     break;
                 }
