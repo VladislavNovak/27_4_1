@@ -2,95 +2,29 @@
 #include <iomanip>
 #include <vector>
 #include <string>
-#include <limits>
 #include <algorithm>
-#include <sstream>
 // #include <cstdlib>
 // #include <ctime>
-#include <iterator>
+#include "includes/utilities.h"
 
 using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
 
-template<typename T, typename N>
-bool isIncludes(const T &range, const N &item) {
-    return std::any_of(range.begin(),
-                       range.end(),
-                       [&item](const N &c) { return c == item; });
-}
-
-void resetBuffer() {
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-}
-
-int putInput() {
-    int input;
-    while (true) {
-        std::cin >> input;
-        if (std::cin.fail()) {
-            std::cout << "Input is invalid. Please try again:";
-            resetBuffer();
-            continue;
-        }
-        break;
-    }
-    resetBuffer();
-    return input;
-}
-
-template<typename T>
-std::stringstream joinListToStream(const std::vector<T> &list, const char* delim = ", ") {
-    std::stringstream ss;
-    std::copy(list.begin(), std::prev(list.end()), std::ostream_iterator<T>(ss, delim));
-    if (!list.empty()) { ss << list.back(); }
-    return ss;
-}
-
-// Любое число - если ничего не передать в массиве.
-// В диапазоне - если передать два числа (меньшее и большее) в массиве.
-// В перечне - если передать массив НЕ из двух элементов или из двух, в котором первый элемент больше второго
-// За исключением - если добавить перечень во второй аргумент
-
-int putNumeric(const std::vector<int> &list = {}, const std::vector<int> &excludedList = {}, const std::string &msg = "") {
-    bool isRange = (list.size() == 2) && (list[0] < list[1]);
-    bool isList = !list.empty() && (list.size() != 2 || ((list.size() == 2) && (list[0] > list[1])));
-    bool isExcluded = !excludedList.empty();
-
-    std::cout << "Enter";
-    if (isRange) std::cout << " (in the range "  << joinListToStream(list, " - ").str() << ")";
-    else if (isList) std::cout << " (in a list of " << joinListToStream(list).str() << ")";
-    if (isExcluded) std::cout << " (excluded " << joinListToStream(excludedList).str() << ")";
-    std::cout << (msg.length() ? " " + msg + ":" : ":");
-
-    int userInput;
-
-    while (true) {
-        userInput = putInput();
-
-        bool isTrouble = false;
-        if (isRange && (userInput < list[0] || userInput > list[1])) isTrouble = true;
-        if (isList && !isIncludes(list, userInput)) isTrouble = true;
-        if (isExcluded && isIncludes(excludedList, userInput)) isTrouble = true;
-
-        if (!isTrouble) { break; }
-        std::cout << "Error.Try again:";
-    }
-    return userInput;
-}
-
 struct Node {
+    // Позволяет позиционировать и добавлять новые узлы к старым
     int id;
+    // Нужен для позиционирования при распечатывании всего дерева
     int stage = 0;
+    string name = "none";
     Node* parent = nullptr;
     vector<Node*> children;
     explicit Node(int inId) { id = inId; }
     ~Node() {
         if (!children.empty()) {
             for (auto &child : children) {
-                cout << "STATUS: delete " << child->id << endl;
+                // cout << "STATUS: delete " << child->id << endl;
                 delete child;
             }
             this->children.clear();
@@ -101,10 +35,20 @@ struct Node {
         child->stage = this->stage + 1;
         children.emplace_back(child);
     }
+    void setName(string inName) {
+        if (!name.empty()) {
+            if (name == "none") { name = inName; }
+            else {
+                cout << "Current name is " << name << ". Are we going to change the name?" << endl;
+                if (selectMenuItem({"yes", "no"}) == 0) { name = std::move(inName); }
+            }
+        } else { name = inName; }
+    }
 };
 
 struct Tree {
     Node* core = nullptr;
+    // Содержит текущий максимальный свободный id
     int counter = 0;
     Tree() {
         core = new Node(0);
@@ -114,10 +58,20 @@ struct Tree {
         cout << "STATUS: delete core" << endl;
         delete core;
     }
+    void print(Node* node) {
+        int indent = node->stage > 0 ? (node->stage * 2) + 4 : 4;
+        cout << std::setw(indent) << "-" << node->id << " with name: " << node->name;
+        cout << " (from " << ((node->parent != nullptr) ? std::to_string(node->parent->id) : "") << ")";
+        if (!node->children.empty()) {
+            cout << ": " << endl;
+            for (const auto & child : node->children) { print(child); }
+        }
+        else { cout << endl; }
+    }
     void push(Node* current, int targetId, Node* newNode, bool &isFound) {
         if (isFound) { return; }
         if (current->id == targetId) {
-            cout << "STATUS: node (" << newNode->id << ") added to (" << targetId <<")!" << endl;
+            cout << "STATUS: added " << newNode->id << " -> to " << targetId << endl;
             current->setChild(newNode);
             isFound = true;
         }
@@ -125,9 +79,41 @@ struct Tree {
             for (const auto &child : current->children) { push(child, targetId, newNode, isFound); }
         }
     }
+    void findNameAmongNodes(Node* node, const string &newName, bool &status) {
+        if (!status) { return; }
+        if (node->name == newName) {
+            // Если найдено совпадение, значит переданное имя - не оригинальное
+            status = false;
+            return;
+        }
+        if (!node->children.empty()) {
+            for (const auto &child : node->children) { findNameAmongNodes(child, newName, status); }
+        }
+    }
+    bool hasOriginalityName(const string &newName) {
+        bool isOriginal = true;
+        findNameAmongNodes(core, newName, isOriginal);
+        cout << "isOriginal:: " << isOriginal << endl;
+        return isOriginal;
+    }
     void createNode() {
         cout << "STATUS: creating a node!" << endl;
         Node* childNode = new Node(++counter);
+
+        cout << "Do you want to set name?" << endl;
+        if (selectMenuItem({"yes", "no"}) == 0) {
+            while(true) {
+                string name = putLineString("Enter name");
+                // Здесь: поднимем первую букву в верхний регистр
+                if (name == "none" || hasOriginalityName(name)) {
+                    childNode->setName(name);
+                    break;
+                }
+
+                cout << "A similar name already exists. Try again." << endl;
+            }
+        }
+
         if (core->children.empty()) {
             cout << "STATUS: node (1) added to (trunk of tree)!" << endl;
             core->setChild(childNode);
@@ -136,16 +122,6 @@ struct Tree {
             int targetId = putNumeric({0, counter - 1}, {}, "number of parent node");
             push(core, targetId, childNode, isFound);
         }
-    }
-    void print(Node* node) {
-        int indent = node->stage > 0 ? (node->stage * 2) + 4 : 2;
-        cout << std::setw(indent) << "-" << node->id;
-        cout << " (from " << ((node->parent != nullptr) ? std::to_string(node->parent->id) : "") << ")";
-        if (!node->children.empty()) {
-            cout << ": " << endl;
-            for (const auto & child : node->children) { print(child); }
-        }
-        else { cout << endl; }
     }
     void printTree() {
         cout << "STATUS: print tree!" << endl;
