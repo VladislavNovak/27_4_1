@@ -12,7 +12,7 @@ using std::endl;
 using std::vector;
 using std::string;
 
-struct Node {
+class Node {
     // Позволяет позиционировать и добавлять новые узлы к старым
     int id;
     // Нужен для позиционирования при распечатывании всего дерева
@@ -20,6 +20,7 @@ struct Node {
     string name = "None";
     Node* parent = nullptr;
     vector<Node*> children;
+public:
     explicit Node(int inId) { id = inId; }
     ~Node() {
         if (!children.empty()) {
@@ -44,12 +45,56 @@ struct Node {
             }
         } else { name = inName; }
     }
+    std::string getName() { return name; }
+    [[nodiscard]] int getId() const { return id; }
+    [[nodiscard]] int getStage() const { return stage; }
+    [[nodiscard]] Node* getParent() const { return parent; }
+    int getNumberOfChildren() { return (children.empty() ? 0 : (int)children.size()); }
+    vector<Node*> getChildren() { return children; }
 };
 
-struct Tree {
+class Tree {
     Node* core = nullptr;
     // Содержит текущий максимальный свободный id
     int counter = 0;
+    void print(Node* node) {
+        int indent = node->getStage() > 0 ? (node->getStage() * 2) + 4 : 4;
+        cout << std::setw(indent) << "-" << node->getId() << " with name: " << node->getName();
+        cout << ((node->getParent() != nullptr) ? " (from " + std::to_string(node->getParent()->getId()) + ")": " is CORE");
+        if (node->getNumberOfChildren()) {
+            cout << ": " << endl;
+            for (const auto & child : node->getChildren()) { print(child); }
+        }
+        else { cout << endl; }
+    }
+    void push(Node* current, int targetId, Node* newNode, bool &isFound) {
+        if (isFound) { return; }
+        if (current->getId() == targetId) {
+            cout << "STATUS: added " << newNode->getId() << " -> to " << targetId << endl;
+            current->setChild(newNode);
+            isFound = true;
+        }
+        else if (current->getNumberOfChildren()) {
+            for (const auto &child : current->getChildren()) { push(child, targetId, newNode, isFound); }
+        }
+    }
+    void findNameAmongNodes(Node* node, const string &newName, bool &status) {
+        if (!status) { return; }
+        if (node->getName() == newName) {
+            // Если найдено совпадение, значит переданное имя - не оригинальное
+            status = false;
+            return;
+        }
+        if (node->getNumberOfChildren()) {
+            for (const auto &child : node->getChildren()) { findNameAmongNodes(child, newName, status); }
+        }
+    }
+    bool hasOriginalityName(const string &newName) {
+        bool isOriginal = true;
+        findNameAmongNodes(core, newName, isOriginal);
+        return isOriginal;
+    }
+public:
     Tree() {
         core = new Node(0);
         cout << "STATUS: created a tree and a trunk node" << endl;
@@ -57,44 +102,6 @@ struct Tree {
     ~Tree() {
         cout << "STATUS: delete tree and children nodes" << endl;
         delete core;
-    }
-    void print(Node* node) {
-        int indent = node->stage > 0 ? (node->stage * 2) + 4 : 4;
-        cout << std::setw(indent) << "-" << node->id << " with name: " << node->name;
-        cout << ((node->parent != nullptr) ? " (from " + std::to_string(node->parent->id) + ")": " is CORE");
-        // cout << " (from " << ((node->parent != nullptr) ? std::to_string(node->parent->id) : "") << ")";
-        if (!node->children.empty()) {
-            cout << ": " << endl;
-            for (const auto & child : node->children) { print(child); }
-        }
-        else { cout << endl; }
-    }
-    void push(Node* current, int targetId, Node* newNode, bool &isFound) {
-        if (isFound) { return; }
-        if (current->id == targetId) {
-            cout << "STATUS: added " << newNode->id << " -> to " << targetId << endl;
-            current->setChild(newNode);
-            isFound = true;
-        }
-        else if (!current->children.empty()) {
-            for (const auto &child : current->children) { push(child, targetId, newNode, isFound); }
-        }
-    }
-    void findNameAmongNodes(Node* node, const string &newName, bool &status) {
-        if (!status) { return; }
-        if (node->name == newName) {
-            // Если найдено совпадение, значит переданное имя - не оригинальное
-            status = false;
-            return;
-        }
-        if (!node->children.empty()) {
-            for (const auto &child : node->children) { findNameAmongNodes(child, newName, status); }
-        }
-    }
-    bool hasOriginalityName(const string &newName) {
-        bool isOriginal = true;
-        findNameAmongNodes(core, newName, isOriginal);
-        return isOriginal;
     }
     void createNode() {
         cout << "STATUS: creating a node!" << endl;
@@ -115,7 +122,7 @@ struct Tree {
             }
         }
 
-        if (core->children.empty()) {
+        if (!core->getNumberOfChildren()) {
             cout << "STATUS: node (1) added to (trunk of tree)!" << endl;
             core->setChild(childNode);
         } else {
