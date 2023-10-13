@@ -12,6 +12,8 @@ using std::endl;
 using std::vector;
 using std::string;
 
+enum class Menu { ADD, PRINT, FIND, EXIT };
+
 class Node {
     // Позволяет позиционировать и добавлять новые узлы к старым
     int id;
@@ -25,7 +27,7 @@ public:
     ~Node() {
         if (!children.empty()) {
             for (auto &child : children) {
-                // cout << "STATUS: delete " << child->id << endl;
+                cout << "STATUS: delete " << child->id << endl;
                 delete child;
             }
             this->children.clear();
@@ -58,9 +60,15 @@ class Tree {
     // Содержит текущий максимальный свободный id
     int counter = 0;
     void print(Node* node) {
+        if (node == nullptr) {
+            cout << "Something is wrong: node not found" << endl;
+            return; }
         int indent = node->getStage() > 0 ? (node->getStage() * 2) + 4 : 4;
-        cout << std::setw(indent) << "-" << node->getId() << " with name: " << node->getName();
-        cout << ((node->getParent() != nullptr) ? " (from " + std::to_string(node->getParent()->getId()) + ")": " is CORE");
+        if (node->getId() == 0) { cout << std::setw(indent) << "-> " << node->getId() << " is Core"; }
+        else {
+            cout << std::setw(indent) << "-> " << node->getId();
+            cout << " with name: " << node->getName() << " (from " + std::to_string(node->getParent()->getId()) + ")";
+        }
         if (node->getNumberOfChildren()) {
             cout << ": " << endl;
             for (const auto & child : node->getChildren()) { print(child); }
@@ -68,6 +76,9 @@ class Tree {
         else { cout << endl; }
     }
     void push(Node* current, int targetId, Node* newNode, bool &isFound) {
+        if (current == nullptr) {
+            cout << "Something is wrong: node not found" << endl;
+            return; }
         if (isFound) { return; }
         if (current->getId() == targetId) {
             cout << "STATUS: added " << newNode->getId() << " -> to " << targetId << endl;
@@ -78,21 +89,48 @@ class Tree {
             for (const auto &child : current->getChildren()) { push(child, targetId, newNode, isFound); }
         }
     }
-    void findNameAmongNodes(Node* node, const string &newName, bool &status) {
+    void findNameAmongNodes(Node* node, const string &searchedName, bool &status) {
+        if (node == nullptr) {
+            cout << "Something is wrong: node not found" << endl;
+            return; }
         if (!status) { return; }
-        if (node->getName() == newName) {
+        if (node->getName() == searchedName) {
             // Если найдено совпадение, значит переданное имя - не оригинальное
             status = false;
             return;
         }
         if (node->getNumberOfChildren()) {
-            for (const auto &child : node->getChildren()) { findNameAmongNodes(child, newName, status); }
+            for (const auto &child : node->getChildren()) { findNameAmongNodes(child, searchedName, status); }
         }
     }
-    bool hasOriginalityName(const string &newName) {
+    bool hasOriginalityName(const string &searchedName) {
         bool isOriginal = true;
-        findNameAmongNodes(core, newName, isOriginal);
+        findNameAmongNodes(core, searchedName, isOriginal);
         return isOriginal;
+    }
+    void find(Node* node, const string &searchedName, bool &isFound) {
+        if (node == nullptr) {
+            cout << "Something is wrong: node not found" << endl;
+            // Если произойдёт зацикливание, присвоить значение переменной isFound
+            return; }
+        if (isFound) { return; }
+        if (node->getName() == searchedName) {
+            isFound = true;
+            // Совпадения с core быть не может, но перестрахуемся
+            if (node->getId() == 0) { cout << "Cannot select core node" << endl; }
+            Node* parent = node->getParent();
+            if (!parent->getNumberOfChildren()) { cout << "No neighbors" << endl; }
+            else {
+                cout << parent->getNumberOfChildren() - 1 << " neighbors found: " << endl;
+                for (const auto &child : parent->getChildren()) {
+                    string childName = child->getName();
+                    if (childName != searchedName) { cout << childName << endl; }
+                }
+            }
+        }
+        else if (node->getNumberOfChildren()) {
+            for (const auto &child : node->getChildren()) { find (child, searchedName, isFound); }
+        }
     }
 public:
     Tree() {
@@ -112,7 +150,6 @@ public:
             while(true) {
                 string name = putLineString("Enter name");
                 capitalize(name);
-                // Здесь: поднимем первую букву в верхний регистр
                 if (name == "None" || hasOriginalityName(name)) {
                     childNode->setName(name);
                     break;
@@ -122,7 +159,11 @@ public:
             }
         }
 
-        if (!core->getNumberOfChildren()) {
+        if (core == nullptr) {
+            cout << "Something is wrong: node not found" << endl;
+            // Если произойдёт зацикливание, присвоить значение переменной isFound
+            return; }
+        else if (!core->getNumberOfChildren()) {
             cout << "STATUS: node (1) added to (trunk of tree)!" << endl;
             core->setChild(childNode);
         } else {
@@ -131,6 +172,13 @@ public:
             push(core, targetId, childNode, isFound);
         }
     }
+    void findNeighbors() {
+        bool isFound = false;
+        string searchedName = putLineString("Enter name");
+        capitalize(searchedName);
+        find(core, searchedName, isFound);
+        if (!isFound) { cout << "Name not found" << endl; }
+    }
     void printTree() {
         cout << "STATUS: print tree!" << endl;
         print(core);
@@ -138,14 +186,28 @@ public:
 };
 
 int main() {
+    std::vector<std::string> mainMenu = { "add_branch", "print_tree", "find_neighbors", "exit" };
+
     Tree tree;
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.createNode();
-    tree.printTree();
+    while(true) {
+        std::cout << "--- Main menu ---" << std::endl;
+        int command = selectMenuItem(mainMenu);
+
+        if (command == static_cast<int>(Menu::ADD)) {
+            std::cout << "Menu --> add mode -->" << std::endl;
+            tree.createNode();
+        }
+        else if (command == static_cast<int>(Menu::PRINT)) {
+            std::cout << "Menu --> print mode -->" << std::endl;
+            tree.printTree();
+        }
+        else if (command == static_cast<int>(Menu::FIND)) {
+            std::cout << "Menu --> find mode -->" << std::endl;
+            tree.findNeighbors();
+        }
+        else if (command == static_cast<int>(Menu::EXIT)) {
+            std::cout << "Menu --> exit mode -->" << std::endl;
+            break;
+        }
+    }
 }
