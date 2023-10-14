@@ -9,8 +9,8 @@
 #include <algorithm>
 #include <sstream>
 #include <cctype>
-// #include <cstdlib>
-// #include <ctime>
+#include <cstdlib>
+#include <ctime>
 #include <iterator>
 
 using std::cout;
@@ -118,6 +118,10 @@ std::string putLineString(const std::string &msg) {
 void capitalize(std::string &target) {
     if (!target.length()) { return; }
     target[0] = std::toupper(target[0]); // NOLINT(*-narrowing-conversions)
+}
+
+int getRandomIntInRange(int from, int to) {
+    return (from + std::rand() % (to - from + 1)); // NOLINT(cert-msc50-cpp)
 }
 
 #endif //INC_27_4_1_UTILITIES_H
