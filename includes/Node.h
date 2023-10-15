@@ -34,15 +34,7 @@ public:
         child->stage = this->stage + 1;
         children.emplace_back(child);
     }
-    void setName(string inName) {
-        if (!name.empty()) {
-            if (name == "None") { name = inName; }
-            else {
-                cout << "Current name is " << name << ". Are we going to change the name?" << endl;
-                if (selectMenuItem({"yes", "no"}) == 0) { name = std::move(inName); }
-            }
-        } else { name = inName; }
-    }
+    void setName(string inName) { name = std::move(inName); }
     std::string getName() { return name; }
     [[nodiscard]] int getId() const { return id; }
     [[nodiscard]] int getStage() const { return stage; }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cassert>
 #include "utilities.h"
 #include "Node.h"
 #include "constants.h"
@@ -28,8 +29,9 @@ class Tree {
         int indent = node->getStage() > 0 ? (node->getStage() * 2) + 4 : 4;
         if (node->getId() == 0) { cout << std::setw(indent) << "-> " << node->getId() << " is Core"; }
         else {
-            cout << std::setw(indent) << "-> " << node->getId();
-            cout << " with name: " << node->getName() << " (from " + std::to_string(node->getParent()->getId()) + ")";
+            cout << std::setw(indent) << "-> #" << node->getId();
+            cout << " with name: " << node->getName() << " (from #";
+            cout << std::to_string(node->getParent()->getId()) + ")";
         }
         if (node->getNumberOfChildren()) {
             cout << ": " << endl;
@@ -38,38 +40,39 @@ class Tree {
         else { cout << endl; }
     }
 
-    void findNodeById(int targetId, Node* current, Node* &foundNode) {
-        if (current == nullptr) {
-            cout << "Something is wrong: node not found" << endl;
-            return; }
-        if (foundNode != nullptr) { return; }
-        if (current->getId() == targetId) {
+    // searchMode указывает признак (name/id), по которому идёт поиск (param). Найденный узел передаётся в foundNode.
+    // Вспомогательная для getNodeById и getNodeByName
+    void findNodeBy(SearchMode searchMode, const string &param, Node* current, Node* &foundNode) {
+        // Если узел, в котором ищем - пустой, или узел найден - выходим:
+        if (current == nullptr || foundNode != nullptr) { return; }
+        // По режиму SearchMode проверяем совпадение по name или по id
+        if ((searchMode == SearchMode::NAME && current->getName() == param) ||
+            (searchMode == SearchMode::ID && std::to_string(current->getId()) == param)) {
             foundNode = current;
             return;
         }
-        else if (current->getNumberOfChildren()) {
-            for (const auto &child : current->getChildren()) { findNodeById(targetId, child, foundNode); }
+
+        if (current->getNumberOfChildren()) {
+            for (const auto &child : current->getChildren()) { findNodeBy(searchMode, param, child, foundNode); }
         }
     }
 
-    // Добавляет новый узел. Вспомогательная для createNode/generateNode
-    void push(Node* current, int targetId, Node* newNode, bool &isFound) {
-        if (current == nullptr) {
-            cout << "Something is wrong: node not found" << endl;
-            return; }
-        if (isFound) { return; }
-        if (current->getId() == targetId) {
-            cout << "STATUS: added " << newNode->getId() << " -> to " << targetId << endl;
-            current->setChild(newNode);
-            isFound = true;
-        }
-        else if (current->getNumberOfChildren()) {
-            for (const auto &child : current->getChildren()) { push(child, targetId, newNode, isFound); }
-        }
+    // Позволяет найти узел по id. Вспомогательная - findNodeBy
+    Node* getNodeById(int id) {
+        Node* foundNode = nullptr;
+        findNodeBy(SearchMode::ID, std::to_string(id), core, foundNode);
+        return foundNode;
     }
 
-    // Нужна для поиска по имени по всему дереву. Вспомогательная для hasOriginalityName
-    void findByName(Node* node, const string &searchedName, bool &status) {
+    // Позволяет найти узел по name. Вспомогательная - findNodeBy
+    Node* getNodeByName(const string &str) {
+        Node* foundNode = nullptr;
+        findNodeBy(SearchMode::NAME, str, core, foundNode);
+        return foundNode;
+    }
+
+    // Нужна для поиска по имени по всему дереву. Вспомогательная для hasNameOriginal
+    void nameOriginalStatus(Node* node, const string &searchedName, bool &status) {
         if (node == nullptr) {
             cout << "Something is wrong: node not found" << endl;
             return; }
@@ -80,66 +83,38 @@ class Tree {
             return;
         }
         if (node->getNumberOfChildren()) {
-            for (const auto &child : node->getChildren()) { findByName(child, searchedName, status); }
+            for (const auto &child : node->getChildren()) { nameOriginalStatus(child, searchedName, status); }
         }
     }
 
-    bool hasOriginalityName(const string &searchedName) {
+    bool hasNameOriginal(const string &searchedName) {
         bool isOriginal = true;
-        findByName(core, searchedName, isOriginal);
+        nameOriginalStatus(core, searchedName, isOriginal);
         return isOriginal;
     }
 
-    // Нужна для поиска соседей. Вспомогательная для findNeighbors
-    void find(Node* node, const string &searchedName, bool &isFound) {
-        if (node == nullptr) {
-            cout << "Something is wrong: node not found" << endl;
-            // Если произойдёт зацикливание, присвоить значение переменной isFound
-            return; }
-        if (isFound) { return; }
-        if (node->getName() == searchedName) {
-            isFound = true;
-            // Совпадения с core быть не может, но перестрахуемся
-            if (node->getId() == 0) { cout << "Cannot select core node" << endl; }
-            Node* parent = node->getParent();
-            if (!parent->getNumberOfChildren()) { cout << "No neighbors" << endl; }
-            else {
-                cout << parent->getNumberOfChildren() - 1 << " neighbors found: " << endl;
-                for (const auto &child : parent->getChildren()) {
-                    string childName = child->getName();
-                    if (childName != searchedName) { cout << childName << endl; }
-                }
-            }
-        }
-        else if (node->getNumberOfChildren()) {
-            for (const auto &child : node->getChildren()) { find (child, searchedName, isFound); }
-        }
-    }
 public:
     Tree() {
         core = new Node(0);
         cout << "STATUS: created a tree and a trunk node" << endl;
     }
+
     ~Tree() {
         cout << "STATUS: delete tree and children nodes" << endl;
         delete core;
     }
-    void changeName() {
-        Node* foundNode = nullptr;
-        int nodeId = putNumeric({1, counter}, {}, "number of node");
-        findNodeById(nodeId, core, foundNode);
-        if (foundNode == nullptr) {
-            cout << "Something is wrong: node not found" << endl;
-            return; }
 
-        cout << "Current name is " << foundNode->getName() << ". ";
+    void changeNameOfNode(Node* &node) {
+        assert(node != nullptr);
+
         cout << "Do you want to set name?" << endl;
         if (selectMenuItem({"yes", "no"}) == 0) {
             while(true) {
                 string name = putLineString("Enter name");
                 capitalize(name);
-                if (name == "None" || hasOriginalityName(name)) {
-                    foundNode->setName(name);
+                if (name == "None" || hasNameOriginal(name)) {
+                    node->setName(name);
+                    cout << "ACTION: name updated successfully" << endl;
                     break;
                 }
 
@@ -147,40 +122,38 @@ public:
             }
         }
     }
+
+    void changeName() {
+        // Находим узел по (id > 0 && id <= counter):
+        Node* foundNode = getNodeById(putNumeric({ 1, counter }, {}, "number of node"));
+        // условие в putNumeric всегда обеспечивает foundNode!= nullptr
+        assert(foundNode != nullptr);
+        cout << "Current name is " << foundNode->getName() << ". ";
+        changeNameOfNode(foundNode);
+    }
+
     void createNode() {
-        cout << "STATUS: creating a node!" << endl;
+        cout << "ACTION: creating a node!" << endl;
         Node* childNode = new Node(++counter);
+        changeNameOfNode(childNode);
 
-        cout << "Do you want to set name?" << endl;
-        if (selectMenuItem({"yes", "no"}) == 0) {
-            while(true) {
-                string name = putLineString("Enter name");
-                capitalize(name);
-                if (name == "None" || hasOriginalityName(name)) {
-                    childNode->setName(name);
-                    break;
-                }
-
-                cout << "A similar name already exists. Try again." << endl;
-            }
-        }
-
-        if (core == nullptr) {
-            cout << "Something is wrong: node not found" << endl;
-            // Если произойдёт зацикливание, присвоить значение переменной isFound
-            return; }
-        else if (!core->getNumberOfChildren()) {
-            cout << "STATUS: node (1) added to (trunk of tree)!" << endl;
+        if (!core->getNumberOfChildren()) {
+            cout << "ACTION: node (#1) added to -> (#0)!" << endl;
             core->setChild(childNode);
         } else {
-            bool isFound = false;
-            int targetId = putNumeric({0, counter - 1}, {}, "number of parent node");
-            push(core, targetId, childNode, isFound);
+            // Находим узел по (id == 0 && id <= (counter - 1)):
+            Node* parentNode = getNodeById(putNumeric({ 0, counter - 1 }, {}, "number of parent node"));
+            // условие в putNumeric всегда обеспечивает foundNode!= nullptr
+            assert(parentNode != nullptr);
+
+            parentNode->setChild(childNode);
+            cout << "ACTION: node (#" << childNode->getId() << ") added to -> (#" << parentNode->getId() << ")" << endl;
         }
     }
+
     void generateNode() {
-        cout << "STATUS: generating a node!" << endl;
-        Node*childNode = new Node(++counter);
+        cout << "ACTION: generating a node!" << endl;
+        Node* childNode = new Node(++counter);
 
         // Если выпадет 0 (вероятность 33%), то автоматом будет присвоено None
         if (getRandomIntInRange(0, 2)) {
@@ -188,31 +161,57 @@ public:
                 string name;
                 name = "Elf";
                 name += std::to_string(getRandomIntInRange(1, 1000));
-                if (hasOriginalityName(name)) {
-                    cout << "Name is: " << name << endl;
+                if (hasNameOriginal(name)) {
+                    cout << "ACTION: name (" << name << ") updated successfully" << endl;
                     childNode->setName(name);
                     break;
                 }
             }
         }
 
+        // Ранее для объекта была уже выделена память. Перестрахуемся:
+        assert(childNode != nullptr);
+
         if (!core->getNumberOfChildren()) {
-            cout << "STATUS: node (1) generate/added to (trunk of tree)!" << endl;
+            cout << "ACTION: node (#1) added to -> (#0)!" << endl;
             core->setChild(childNode);
         } else {
-            bool isFound = false;
-            int targetId = getRandomIntInRange(0, counter - 1);
-            cout << "target id: " << targetId << endl;
-            push(core, targetId, childNode, isFound);
+            // Находим узел по (id == 0 && id <= (counter - 1)):
+            Node* parentNode = getNodeById(getRandomIntInRange(0, counter - 1));
+            // условие в getRandomIntInRange всегда обеспечивает foundNode!= nullptr
+            assert(parentNode != nullptr);
+
+            parentNode->setChild(childNode);
+            cout << "ACTION: node (#" << childNode->getId() << ") added to -> (#" << parentNode->getId() << ")" << endl;
         }
     }
+
     void findNeighbors() {
-        bool isFound = false;
-        string searchedName = putLineString("Enter name");
-        capitalize(searchedName);
-        find(core, searchedName, isFound);
-        if (!isFound) { cout << "Name not found" << endl; }
+        string searchedName;
+        while (true) {
+            searchedName = putLineString("Enter name");
+            capitalize(searchedName);
+            // Если имя существует, то ок
+            if (!hasNameOriginal(searchedName) && searchedName != "None") { break; }
+            cout << "Name not found. Try again. ";
+        }
+
+        Node* childNode = getNodeByName(searchedName);
+        // Цикл while с проверкой имени должен исключить возникновение пустого объекта. Проверим:
+        assert(childNode != nullptr);
+        // Совпадения с core быть не может, но перестрахуемся
+        if (childNode->getId() == 0) { cout << "Cannot select core node" << endl; }
+        Node* parent = childNode->getParent();
+        if (!parent->getNumberOfChildren()) { cout << "No neighbors" << endl; }
+        else {
+            cout << parent->getNumberOfChildren() - 1 << " neighbors found: " << endl;
+            for (const auto &child : parent->getChildren()) {
+                string childName = child->getName();
+                if (childName != searchedName) { cout << childName << endl; }
+            }
+        }
     }
+
     void printTree() {
         cout << "STATUS: print tree!" << endl;
         print(core);
