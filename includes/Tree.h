@@ -93,7 +93,7 @@ class Tree {
         return isOriginal;
     }
 
-    void changeNameOfNode(Node* &node) {
+    string changeNameOfNode(Node* &node) {
         assert(node != nullptr);
 
         cout << "Do you want to set name?" << endl;
@@ -104,12 +104,14 @@ class Tree {
                 if (name == "None" || hasNameOriginal(name)) {
                     node->setName(name);
                     cout << "ACTION: name updated successfully" << endl;
-                    break;
+                    return name;
                 }
 
                 cout << "A similar name already exists. Try again." << endl;
             }
         }
+
+        return "";
     }
 
 public:
@@ -124,19 +126,26 @@ public:
         delete core;
     }
 
-    void changeName() {
+    // Меняет имя указанного узла. Возвращает старое имя и новое
+    vector<string> changeName() {
         // Находим узел по (id > 0 && id <= counter):
         Node* foundNode = getNodeById(putNumeric({ 1, counter }, {}, "number of node"));
         // условие в putNumeric всегда обеспечивает foundNode!= nullptr
         assert(foundNode != nullptr);
-        cout << "Current name is " << foundNode->getName() << ". ";
-        changeNameOfNode(foundNode);
+        string oldName = foundNode->getName();
+        cout << "Current name is " << oldName << ". ";
+        string newName = changeNameOfNode(foundNode);
+        vector<string> names = {(!oldName.empty() && oldName != "None") ? oldName : "",
+                                (!newName.empty() && newName != "None") ? newName : "",
+        };
+        return names;
     }
 
-    void createNode() {
+    // Возвращает новое имя (либо пустую строку)
+    string createNode() {
         cout << "ACTION: creating a node!" << endl;
         Node* childNode = new Node(++counter);
-        changeNameOfNode(childNode);
+        string name = changeNameOfNode(childNode);
 
         if (!core->getNumberOfChildren()) {
             cout << "ACTION: node (#1) added to -> (#0)!" << endl;
@@ -150,16 +159,19 @@ public:
             parentNode->setChild(childNode);
             cout << "ACTION: node (#" << childNode->getId() << ") added to -> (#" << parentNode->getId() << ")" << endl;
         }
+
+        return (!name.empty() && name != "None") ? name : "";
     }
 
-    void generateNode() {
+    // Возвращает новое имя (либо пустую строку)
+    string generateNode() {
         cout << "ACTION: generating a node!" << endl;
         Node* childNode = new Node(++counter);
 
+        string name;
         // Если выпадет 0 (вероятность 33%), то автоматом будет присвоено None
         if (getRandomIntInRange(0, 2)) {
             while (true) {
-                string name;
                 name = "Elf";
                 name += std::to_string(getRandomIntInRange(1, 1000));
                 if (hasNameOriginal(name)) {
@@ -185,6 +197,8 @@ public:
             parentNode->setChild(childNode);
             cout << "ACTION: node (#" << childNode->getId() << ") added to -> (#" << parentNode->getId() << ")" << endl;
         }
+
+        return (!name.empty() && name != "None") ? name : "";
     }
 
     void findNeighbors() {
