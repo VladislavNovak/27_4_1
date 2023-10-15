@@ -93,17 +93,6 @@ class Tree {
         return isOriginal;
     }
 
-public:
-    Tree() {
-        core = new Node(0);
-        cout << "STATUS: created a tree and a trunk node" << endl;
-    }
-
-    ~Tree() {
-        cout << "STATUS: delete tree and children nodes" << endl;
-        delete core;
-    }
-
     void changeNameOfNode(Node* &node) {
         assert(node != nullptr);
 
@@ -121,6 +110,18 @@ public:
                 cout << "A similar name already exists. Try again." << endl;
             }
         }
+    }
+
+public:
+
+    Tree() {
+        core = new Node(0);
+        cout << "STATUS: created a tree and a trunk node" << endl;
+    }
+
+    ~Tree() {
+        cout << "STATUS: delete tree and children nodes" << endl;
+        delete core;
     }
 
     void changeName() {
