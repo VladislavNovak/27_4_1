@@ -14,13 +14,15 @@ using std::string;
 
 int main() {
     std::srand(std::time(nullptr)); // NOLINT(cert-msc51-cpp)
-    std::vector<std::string> mainMenu = { "add_node", "print_tree", "print_trees", "change_name", "find", "exit" };
+    std::vector<std::string> mainMenu = { "add", "print_tree", "print_all", "change", "find", "names", "exit" };
     std::vector<std::string> mainMenuTitles = {
-            " -> " + mainMenu[0] + ":        add a new node to the tree",
+            " -> " + mainMenu[0] + ":             create a new node and attach it to the tree",
             " -> " + mainMenu[1] + ":      will print the specified tree",
-            " -> " + mainMenu[2] + ":     will print all trees",
-            " -> " + mainMenu[3] + ":     will change the name of the specified node",
+            " -> " + mainMenu[2] + ":       will print all trees",
+            " -> " + mainMenu[3] + ":          will change the name of the specified node",
             " -> " + mainMenu[4] + ":            will find all neighboring nodes by name",
+            " -> " + mainMenu[5] + ":           shows all reserved names",
+            " -> " + mainMenu[6] + ":            to exit (all trees and nodes will be destroyed)",
     };
     // Содержит список исключений: коллекцию всех имен. Нужно для анализа всех tree
     std::vector<std::string> namesCollection;
@@ -45,10 +47,6 @@ int main() {
         trees.emplace_back(tree);
     }
 
-    // cout << "LOG: Collection: " << endl;
-    // for (const string &name : namesCollection) { cout << name << ", "; }
-    // cout << endl;
-
     while(true) {
         std::cout << "--- Main menu ---" << std::endl;
         cout << joinListToStream(mainMenuTitles, "\n").str() << endl;
@@ -61,10 +59,6 @@ int main() {
             // nameCollection содержит имена, которые нельзя давать/изменять для узлов
             currentName = trees[item]->createNode(namesCollection);
             if (!currentName.empty()) { namesCollection.emplace_back(currentName); }
-
-            // cout << "LOG: Collection: " << endl;
-            // for (const string &name : namesCollection) { cout << name << ", "; }
-            // cout << endl;
         }
         else if (command == static_cast<int>(Menu::PRINT)) {
             std::cout << "Menu --> print tree mode -->" << std::endl;
@@ -88,10 +82,6 @@ int main() {
 
             if (!names[0].empty()) { removeKeyFromVector(names[0], namesCollection); }
             if (!names[1].empty()) { namesCollection.emplace_back(names[1]); }
-
-            // cout << "LOG: Collection: " << endl;
-            // for (const string &name : namesCollection) { cout << name << ", "; }
-            // cout << endl;
         }
         else if (command == static_cast<int>(Menu::FIND)) {
             std::cout << "Menu --> find mode -->" << std::endl;
@@ -107,6 +97,11 @@ int main() {
                 auto found = tree->findNeighbors(searchedName);
                 if (found) { break; }
             }
+        }
+        else if (command == static_cast<int>(Menu::NAMES)) {
+            std::cout << "Menu --> names print mode -->" << std::endl;
+            cout << joinListToStream(namesCollection).str() << endl;
+            cout << endl;
         }
         else if (command == static_cast<int>(Menu::EXIT)) {
             std::cout << "Menu --> exit mode -->" << std::endl;
