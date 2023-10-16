@@ -22,10 +22,11 @@ class Tree {
     // Содержит текущий максимальный свободный id
     int counter = 0;
 
-    void print(Node* node) {
+    void print(Node* node) const {
         if (node == nullptr) {
             cout << "Something is wrong: node not found" << endl;
             return; }
+
         int indent = node->getStage() > 0 ? (node->getStage() * 2) + 4 : 4;
         if (node->getId() == 0) { cout << std::setw(indent) << "-> " << node->getId() << " is Core"; }
         else {
@@ -93,7 +94,8 @@ class Tree {
         return isOriginal;
     }
 
-    string changeNameOfNode(Node* &node) {
+    // constraints - список имен, которые нельзя давать/изменять для узла
+    string changeNameOfNode(Node* &node, const vector<std::string> &constraints) {
         assert(node != nullptr);
 
         cout << "Do you want to set name?" << endl;
@@ -101,9 +103,12 @@ class Tree {
             while(true) {
                 string name = putLineString("Enter name");
                 capitalize(name);
-                if (name == "None" || hasNameOriginal(name)) {
-                    node->setName(name);
+
+                // hasNameOriginal возвращает true если имя оригинально для своего дерева
+                // isIncludes проверяет по именам всех деревьев (список constraints)
+                if (name == "None" || (hasNameOriginal(name) && !isIncludes(constraints, name))) {
                     cout << "ACTION: name updated successfully" << endl;
+                    node->setName(name);
                     return name;
                 }
 
@@ -126,15 +131,16 @@ public:
         delete core;
     }
 
-    // Меняет имя указанного узла. Возвращает старое имя и новое
-    vector<string> changeName() {
+    // Меняет имя указанного узла. Возвращает старое имя и новое.
+    // constraints - список имен, которые нельзя давать/изменять для узла
+    vector<string> changeName(const vector<std::string> &constraints) {
         // Находим узел по (id > 0 && id <= counter):
         Node* foundNode = getNodeById(putNumeric({ 1, counter }, {}, "number of node"));
         // условие в putNumeric всегда обеспечивает foundNode!= nullptr
         assert(foundNode != nullptr);
         string oldName = foundNode->getName();
         cout << "Current name is " << oldName << ". ";
-        string newName = changeNameOfNode(foundNode);
+        string newName = changeNameOfNode(foundNode, constraints);
         vector<string> names = {(!oldName.empty() && oldName != "None") ? oldName : "",
                                 (!newName.empty() && newName != "None") ? newName : "",
         };
@@ -142,10 +148,11 @@ public:
     }
 
     // Возвращает новое имя (либо пустую строку)
-    string createNode() {
+    // constraints - список имен, которые нельзя давать/изменять для узла
+    string createNode(const vector<std::string> &constraints) {
         cout << "ACTION: creating a node!" << endl;
         Node* childNode = new Node(++counter);
-        string name = changeNameOfNode(childNode);
+        string name = changeNameOfNode(childNode, constraints);
 
         if (!core->getNumberOfChildren()) {
             cout << "ACTION: node (#1) added to -> (#0)!" << endl;
@@ -164,7 +171,8 @@ public:
     }
 
     // Возвращает новое имя (либо пустую строку)
-    string generateNode() {
+    // constraints - список имен, которые нельзя давать/изменять для узла
+    string generateNode(const vector<std::string> &constraints) {
         cout << "ACTION: generating a node!" << endl;
         Node* childNode = new Node(++counter);
 
@@ -174,7 +182,7 @@ public:
             while (true) {
                 name = "Elf";
                 name += std::to_string(getRandomIntInRange(1, 1000));
-                if (hasNameOriginal(name)) {
+                if (hasNameOriginal(name) && !isIncludes(constraints, name)) {
                     cout << "ACTION: name (" << name << ") updated successfully" << endl;
                     childNode->setName(name);
                     break;
@@ -201,33 +209,37 @@ public:
         return (!name.empty() && name != "None") ? name : "";
     }
 
-    void findNeighbors() {
-        string searchedName;
-        while (true) {
-            searchedName = putLineString("Enter name");
-            capitalize(searchedName);
-            // Если имя существует, то ок
-            if (!hasNameOriginal(searchedName) && searchedName != "None") { break; }
-            cout << "Name not found. Try again. ";
-        }
+    // Позволяет найти соседние узлы по введенному имени:
+    bool findNeighbors(const std::string &searchedName) {
+        if (hasNameOriginal(searchedName) || searchedName == "None") { return false; }
 
         Node* childNode = getNodeByName(searchedName);
-        // Цикл while с проверкой имени должен исключить возникновение пустого объекта. Проверим:
+        // Проверка имени в hasNameOriginal должна исключить возникновение пустого объекта. Проверим:
         assert(childNode != nullptr);
         // Совпадения с core быть не может, но перестрахуемся
-        if (childNode->getId() == 0) { cout << "Cannot select core node" << endl; }
-        Node* parent = childNode->getParent();
-        if (!parent->getNumberOfChildren()) { cout << "No neighbors" << endl; }
-        else {
-            cout << parent->getNumberOfChildren() - 1 << " neighbors found: " << endl;
-            for (const auto &child : parent->getChildren()) {
-                string childName = child->getName();
-                if (childName != searchedName) { cout << childName << endl; }
-            }
+        if (childNode->getId() == 0) {
+            cout << "Cannot select core node" << endl;
+            return false;
         }
+
+        Node* parent = childNode->getParent();
+        vector<string> names;
+        for (const auto &child : parent->getChildren()) {
+            string childName = child->getName();
+            // Добавляем, если это не сам объект поиска и если сосед имеет имя:
+            if (childName != searchedName && childName != "None") { names.emplace_back(childName); }
+        }
+
+        if (names.empty()) { cout << "No neighbors" << endl; }
+        else {
+            cout << names.size() << " neighbor"  << (names.size() > 1 ? "s" : "") << " found: " << endl;
+            cout << joinListToStream(names).str() << endl;
+        }
+
+        return true;
     }
 
-    void printTree() {
+    void printTree() const {
         cout << "STATUS: print tree!" << endl;
         print(core);
     }
