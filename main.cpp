@@ -38,7 +38,7 @@ int main() {
     for (int j = 0; j < numOfTrees; ++j) {
         Tree* tree = new Tree();
         // Генерируем произвольные узлы для дерева
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 15; ++i) {
             // Для конкретного узла даём имя
             currentName = tree->generateNode(namesCollection);
             // Если имя оригинальное, добавляем его в список исключений

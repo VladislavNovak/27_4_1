@@ -27,12 +27,11 @@ class Tree {
             cout << "Something is wrong: node not found" << endl;
             return; }
 
-        int indent = node->getStage() > 0 ? (node->getStage() * 2) + 4 : 4;
+        int indent = node->getStage() > 0 ? (node->getStage() * 2) + 8 : 4;
         if (node->getId() == 0) { cout << std::setw(indent) << "-> " << node->getId() << " is Core"; }
         else {
-            cout << std::setw(indent) << "-> #" << node->getId();
-            cout << " with name: " << node->getName() << " (from #";
-            cout << std::to_string(node->getParent()->getId()) + ")";
+            cout << std::setw(indent) << "(from #" << std::to_string(node->getParent()->getId()) + ")";
+            cout << "-> #" << node->getId() << " (with name: " << node->getName() << ")";
         }
         if (node->getNumberOfChildren()) {
             cout << ": " << endl;
